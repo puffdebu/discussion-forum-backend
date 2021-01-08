@@ -22,14 +22,25 @@ exports.createUser = (req,res,next) => {
 
 exports.getInfo = (req,res,next) => {
     const userId = req.params.userId;
+    const userName = req.params.userName;
     console.log(userId);
     User.findByPk(userId)
         .then(resp => {
-            console.log(resp);
-            res.json({
-                name : resp.name,
-                userId : resp.id,
-            });
+            if(!resp){
+                return Upvoter.create({
+                    id: userId,
+                }).then(() => {
+                    return User.create({
+                        id : userId,
+                        name : userName,
+                    });
+                })
+            }
+            else 
+            return Promise.resolve(resp);
+        })
+        .then(user => {
+            res.status(200).json({name : user.name,userId : user.id});
         })
         .catch((err) => {
             res.status(400).json({message : 'Sorry could\'nt fetch user details'});

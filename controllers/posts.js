@@ -1,34 +1,9 @@
+const { Op } = require('sequelize');
 const User = require('../models/user');
 const Post = require('../models/post');
 const Comment = require('../models/comment');
+const Action = require('../models/action');
 const Upvoter = require('../models/upvoter');
-
-// exports.addPost = (req,res,next) => {
-//     const userId = req.params.userId;
-//     res.render('add-post',{
-//        userId : userId, 
-//     });
-// }
-
-// exports.postPost = (req,res,next) => {
-//     const userId = req.params.userId;
-//     console.log(userId);
-//     const content = req.body.postContent;
-//     User.findByPk(userId)
-//         .then(user => {
-//             console.log(user);
-//             return user.createPost({
-//                 content : content,
-//             });
-//         })
-//         .then(() => {
-//             res.redirect('/');
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-// };
-
 
 exports.fetchUserPosts = (req,res,next) => {
     let users = [];
@@ -49,6 +24,7 @@ exports.fetchUserPosts = (req,res,next) => {
                 };
                 response.push(postInfo);
             });
+            response.reverse();
             res.json(response);
         })
         .catch((err) => {
@@ -57,115 +33,29 @@ exports.fetchUserPosts = (req,res,next) => {
         });
 };
 
-// exports.fetchPosts = (req,res,next) => {
-//     let users = [];
-//     let finalObj = [];
-//     User.findAll()
-//         .then(fetchedUsers => {
-//             users = fetchedUsers;
-//             return  Post.findAll(); 
-//         })
-//         .then(posts => {
-//             posts.forEach(post => {
-//                 const userInfo = users.find(user => user.id === post.userId);
-//                 const obj ={
-//                     name : userInfo.name,
-//                     email : userInfo.email,
-//                     userId : userInfo.id,
-//                     postId : post.id,
-//                     content : post.content,
-//                     comments : [],
-//                 };
-//                 finalObj.push(obj);
-//             });
-//             return Comment.findAll({include : 'upvoters'})
-//         })
-//         .then(comments => {
-//             comments.forEach(comment => {
-//                 const userInfo = users.find(user => user.id === comment.userId);
-//                 const postIdIndex = finalObj.findIndex(obj => obj.postId === comment.postId);
-//                 const upvoters = comment.upvoters.map(upvoter => ({
-//                     upvoterId : upvoter.id,
-//                 }));
-//                 finalObj[postIdIndex].comments.push({
-//                     id : comment.id,
-//                     upvotes : comment.upvotes,
-//                     content : comment.content,
-//                     name : userInfo.name,
-//                     email : userInfo.email,
-//                     userId : userInfo.id,
-//                     upvoters :upvoters,
-//                 });
-//             });
-//             res.json(finalObj);
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-// };
+exports.postComment = (req,res,next) => {
+    let userId= req.body.userId;
+    let content = req.body.content;
+    let postId= req.body.postId;
 
+    User.findByPk(userId)
+    .then( user => {
+        return user.createComment({
+            upvotes : 0,
+            content: content,
+            postId: postId
+        })
+    })
+    .then(result =>{
+        console.log(result);
+        res.status(200).json({message : 'Post created successfully'});
+    })
+    .catch(err =>{
+        console.log(err);
+        res.status(400).json({message : 'Problem creating the post.'})
+    });
 
-
-// exports.comment = (req,res,next) => {
-//     res.render('add-comment');
-// };
-
-
-// exports.postComment = (req,res,next) => {
-//     const userId = req.body.userId;
-//     const postId = req.body.postId;
-//     const comment = req.body.comment;
-//     res.redirect(`/add-comment/${userId}/${postId}?comment=${comment}`);
-// };
-
-
-// exports.addComment = (req,res,next) => {
-//     const userId = req.params.userId;
-//     const postId = req.params.postId;
-//     const comment = req.query.comment;
-//     console.log('userId',userId,'postId',postId,'comment',comment);
-//     Comment.create({
-//         upvotes : 0,
-//         content : comment,
-//         postId : postId,
-//         userId : userId,
-//     }).then(() => {
-//         res.redirect('/');
-//     });
-// };
-
-
-// exports.checkForUser = (req,res,next) =>{
-//     const userId = req.params.userId;
-//     Comment.findOne({include : 'upvoters',where : {id : 2}})
-//         .then(comment => {
-//            // console.log('comment',comment);
-//             // const upvoters = comment.upvoters;
-//             return Upvoter.findByPk(userId)
-//                 .then(upvoter => {
-//                     return comment.addUpvoter(upvoter);
-//                 });
-//         })
-//         .then(() => {
-//             res.json({name : 'Divyansh'});
-//         })
-//         .catch(err => {
-//             console.log(err);
-//         });
-// };
-
-// // exports.addUpvote = (req,res,next) => {
-// //     const userId = req.params.userId;
-// //     const commentId = req.params.commentId;
-// //     Comment.findOne({
-// //         where : {id : commentId},
-// //         include : 'upvoter',
-// //         })
-// //         .then(comment => {
-// //              console.log(comment);
-// //              res.json({name : 'Divyansh'});
-// //         });
-// // };
+};
 
 
 exports.createPost = (req,res,next) => {
@@ -186,39 +76,237 @@ exports.createPost = (req,res,next) => {
 };
 
 
-exports.fetchDiscussionPost = (req,res,next) => {
-    const postId = req.params.postId;
-    let users = [];
-    let postInfo = {};
-    User.findAll()
-        .then(fetchedUsers => {
-            users = fetchedUsers;
-            return Post.findByPk(postId)
+exports.searchKeyWord = (req,res) => {
+    const keyword = req.params.keyword;
+    const options = {
+        where : {
+            content : {
+               [Op.like] :  '%' + keyword + '%',    
+            } 
+        }
+    };
+    Post.findAll(options)
+        .then(resp => {
+            console.log(resp);
+            res.json('Hello');
         })
-        .then(post => {
-            console.log('post',post);
-            const author = users.find(u => u.id === post.userId);
-            postInfo.postId = post.id;
-            postInfo.content = post.content;
-            postInfo.userId = post.userId;
-            postInfo.name = author.name;
-            return Comment.findAll({where : {postId : postId}});
-        })
-        .then(comments => {
-            console.log('comments',comments);
-            let postComments = [];
-            comments.forEach(comment => {
-                console.log('comment',comment);
-                const singleComment = {};
-                const author = users.find(u => u.id === comment.userId);
-                singleComment.name = author.name;
-                singleComment.userId = author.id;
-                singleComment.commentId = comment.id;
-                singleComment.content = comment.content;
-                postComments.push(singleComment);
-            });
-            postInfo.comments = postComments;
-            res.json(postInfo);
+        .catch(err => {
+            console.log(err);
         });
 };
 
+
+
+exports.upvoteHandler = (req,res,next) => {
+    const commentId = req.body.commentId;
+    const userId= req.body.userId;
+    let updateNeeded =0;
+        Upvoter.findByPk(userId, {include: "comments"})
+        .then(upvoter =>{
+                let targetComment= upvoter.comments.find(comment => comment.id===commentId);
+                if(!targetComment){
+                    updateNeeded=1;
+                    return Action.create({
+                        upvoterId : userId,
+                        commentId : commentId,
+                        upvoted : true,
+                        downvoted : false,
+                    });
+                }
+    
+                else {
+                    let upvoted = targetComment.action.upvoted;
+                    let downvoted = targetComment.action.downvoted;
+                    if(upvoted){
+                        upvoted=false;
+                        updateNeeded=-1;
+                    }
+                    else if(downvoted){
+                        downvoted=false;
+                        upvoted = true;
+                        updateNeeded=2;
+                    }
+                    else {
+                        upvoted = true;
+                        updateNeeded=1;
+                    }
+                    return Action.findAll({where : {commentId : commentId,upvoterId : userId}})
+                            .then(([action]) => {
+                                action.upvoted = upvoted;
+                                action.downvoted = downvoted;
+                                return action.save();
+                            });
+                }            
+        })
+        .then(() =>{
+            return Comment.findByPk(commentId)
+                    .then(comment => {
+                        comment.upvotes+=updateNeeded;
+                        return comment.save();
+                    })
+        })
+        .then(() =>{
+            res.json({message: "Upvoted!"});
+        })
+        .catch(err =>{
+            console.log(err);
+        });
+    
+    
+};
+
+
+exports.downVoteHandler = (req,res,next) => {
+    // const commentId = req.body.commentId;
+    // const userId = req.body.userId;
+    // Action.findAll({where : {commentId : commentId,upvoterId : userId}})
+    //     .then(resp => {
+    //         if(resp.length === 0){
+    //             return Action.create({
+    //                 upvoterId : userId,
+    //                 commentId : commentId,
+    //                 upvoted :  false,
+    //                 downvoted : true,
+    //             });
+    //         }
+    //         else {
+    //             const [row] = resp;
+    //             if(row.downvoted) {
+    //                 row.downvoted = false;
+    //             }
+    //             else{
+    //                 row.downvoted = true;
+    //                 row.upvoted = false;
+    //             };
+    //             return row.save();
+    //         }
+    //     }).then(() => {
+    //         return Action.findAll({where : {commentId : commentId}})
+    //                 .then(rows => {
+    //                     let counter = 0;
+    //                     rows.forEach(row => {
+    //                         if(row.upvoted){
+    //                             counter ++;
+    //                         }
+    //                         if(row.downvoted){
+    //                             counter --;
+    //                         }
+    //                     })
+    //                     return Comment.findByPk(commentId)
+    //                         .then(comment => {
+    //                             comment.upvotes = counter;
+    //                             return comment.save();
+    //                         })
+    //                 })
+    //     })
+    //     .then(() => {
+    //         res.json({message : 'Comment was downvoted successfully.'});
+    //     })
+
+    const userId = req.body.userId;
+    const commentId = req.body.commentId;
+    let updateNeeded=0;
+    Upvoter.findByPk(userId, {include: "comments"})
+    .then(upvoter =>{
+        let targetComment= upvoter.comments.find( comment  => comment.id===commentId);
+        if(!targetComment)
+        {
+            updateNeeded-=1;
+             return  Action.create({
+                upvoterId : userId,
+                commentId : commentId,
+                upvoted : false,
+                downvoted : true,
+            });
+        }
+        else {
+            let upvoted= targetComment.action.upvoted;
+            let downvoted= targetComment.action.downvoted;
+            if(upvoted){
+                upvoted=false;
+                downvoted=true;
+                updateNeeded-=2;
+            }
+
+            else if(downvoted){
+                downvoted=false;
+                updateNeeded+=1;
+            }
+            else {
+                updateNeeded-=1;
+                downvoted=true;
+            }
+            return  Action.findAll({where: {commentId: commentId, upvoterId: userId}})
+            .then(([action]) =>{
+                action.downvoted=downvoted;
+                action.upvoted=upvoted;
+                return action.save();
+            });
+        }
+    })
+    .then(() =>{
+        return Comment.findByPk(commentId);
+    })
+    .then(comment =>{
+        comment.upvotes+=updateNeeded;
+        return comment.save();
+    })
+    .then(() =>{
+        res.json({message: "Downvoted Successfully!"});
+    })
+    .catch(err =>{
+        console.log(err);
+    })
+};
+
+
+exports.fetchDiscussionPost = (req,res,next) =>{
+    const postId= req.params.postId;
+    const userId = req.params.userId;
+    const info ={
+        postId: postId,
+        comments : [],
+    }
+    let Users =[];
+    User.findAll()
+    .then(users =>{
+        Users=users;
+        return Post.findByPk(postId);
+    })
+    .then(post =>{
+        info.content= post.content;
+        info.userId= post.userId;
+        let user= Users.find(user => user.id=== post.userId);
+        info.name= user.name;
+
+        return post.getComments({include : 'upvoters'});
+    })
+    .then(comments =>{
+        comments.forEach(comment =>{
+           let  obj2 = {
+                commentId: comment.id,
+                content : comment.content,
+                upvotes: comment.upvotes,
+                userId: comment.userId,
+            }
+            let upvoter = comment.upvoters.find( upvoter => upvoter.id === userId);
+            if(!upvoter){
+                obj2.upvoted = false;
+                obj2.downvoted= false;
+            } else {
+                obj2.upvoted = upvoter.action.upvoted;
+                obj2.downvoted= upvoter.action.downvoted;
+            };
+            let user= Users.find(user => user.id=== obj2.userId);
+            obj2.name= user.name;
+            info.comments.push(obj2);
+        
+
+        });
+        res.json(info);
+    })
+    .catch(err =>{
+        console.log(err);
+    })
+    
+};

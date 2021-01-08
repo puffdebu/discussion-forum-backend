@@ -8,7 +8,7 @@ const User  = require('./models/user');
 const Post = require('./models/post');
 const Comment = require('./models/comment');
 const Upvoter = require('./models/upvoter');
-//const Intermediate = require('./models/intermediate');
+const Action = require('./models/action');
 
 const postRoutes = require('./routes/posts');
 const userRoutes= require('./routes/user');
@@ -57,9 +57,11 @@ Post.hasMany(Comment);
 
 // Upvoter and Comment
 
-Comment.belongsToMany(Upvoter, {through : 'intermidiate'});
+Comment.belongsToMany(Upvoter, {through : Action});
+Upvoter.belongsToMany(Comment,{through : Action});
 
 sequelize
+    //.sync({force : true})
     .sync()
     .then(() => {
         app.listen(8080);
