@@ -1,17 +1,12 @@
+const mongoose = require('mongoose');
 const User = require('../models/user');
-const Upvoter = require('../models/upvoter');
+// const Upvoter = require('../models/upvoter');
 
 exports.createUser = (req,res,next) => {
     const userId = req.body.userId;
     const name = req.body.name;
-    User.create({
-        id : userId,
-        name : name,
-    }).then(() =>{
-        return Upvoter.create({
-            id : userId,
-        });
-    })
+    let user = new User({_id: userId,name: name, postUpvoted: []});
+    user.save()
     .then(() => {
         res.json({message : 'User created successfully'});
     })
@@ -24,17 +19,11 @@ exports.getInfo = (req,res,next) => {
     const userId = req.params.userId;
     const userName = req.params.userName;
     console.log(userId);
-    User.findByPk(userId)
+    User.findById(userId)
         .then(resp => {
             if(!resp){
-                return Upvoter.create({
-                    id: userId,
-                }).then(() => {
-                    return User.create({
-                        id : userId,
-                        name : userName,
-                    });
-                })
+                let user = new User({_id: userId, name: userName, postUpvoted: []});
+                return user.save();
             }
             else 
             return Promise.resolve(resp);
@@ -43,6 +32,6 @@ exports.getInfo = (req,res,next) => {
             res.status(200).json({name : user.name,userId : user.id});
         })
         .catch((err) => {
-            res.status(400).json({message : 'Sorry could\'nt fetch user details'});
+            res.status(400).json({message : 'Sorry couldn\'t fetch user details'});
         });
 };
