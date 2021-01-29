@@ -10,7 +10,7 @@ router.get('/fetch-discussion-post/:postId/:userId',postController.fetchDiscussi
 
 router.post('/add-comment',postController.postComment);
 
-router.get('/search-query/:keyword',postController.searchKeyWord);
+// router.get('/search-query/:keyword',postController.searchKeyWord);
 
 router.post('/upvote',postController.upvoteHandler);
 

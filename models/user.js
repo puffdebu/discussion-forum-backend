@@ -25,12 +25,8 @@ userSchema = Schema({
     name: {
         type : String, 
         required : true
-    },
-    commentUpvoted : [{
-        commentId : {type: Schema.Types.ObjectId, required: true},
-        upvoted : {type: Boolean, default: false, required: true},
-        downvoted : {type: Boolean, default : false, required: true}
-    }]
+    }
+    
 });
 
 userSchema.methods.createPost = function(content){

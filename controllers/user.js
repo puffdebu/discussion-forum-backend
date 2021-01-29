@@ -5,7 +5,7 @@ const User = require('../models/user');
 exports.createUser = (req,res,next) => {
     const userId = req.body.userId;
     const name = req.body.name;
-    let user = new User({_id: userId,name: name, postUpvoted: []});
+    let user = new User({_id: userId,name: name});
     user.save()
     .then(() => {
         res.json({message : 'User created successfully'});
@@ -22,7 +22,7 @@ exports.getInfo = (req,res,next) => {
     User.findById(userId)
         .then(resp => {
             if(!resp){
-                let user = new User({_id: userId, name: userName, postUpvoted: []});
+                let user = new User({_id: userId, name: userName});
                 return user.save();
             }
             else 

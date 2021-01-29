@@ -66,7 +66,7 @@ exports.postComment = (req,res,next) => {
        let tempComment = {
            content: content,
            user: {userId: fetchedUser._id, userName: fetchedUser.name},
-           upvotes : 0
+           upvotes : {count: 0, users: []}
        }
        console.log('post: ', post);
        let updatedComments = [...post.comments];
@@ -184,143 +184,116 @@ exports.upvoteHandler = (req,res,next) => {
     const userId = req.body.userId;
     const commentId = req.body.commentId;
     const postId = req.body.postId;
-    console.log('in upvote handler',req.body.postId);
+    // console.log('in upvote handler',req.body.postId);
     let updateNeeded = 0;
-    User.findById(userId)
-    .then(user =>{
-        console.log('I am a user from upvotHandler', user);
-        let tempComment = user.commentUpvoted.find(c =>
-            c.commentId.toString()===commentId.toString()
-        );
-        let updatedCommentUpvoted = user.commentUpvoted.filter(c =>
-            c.commentId.toString()!==commentId.toString()
-        ); 
-        let upvoted = false;
-        let downvoted = false;
-        if(tempComment){
-            if(tempComment.upvoted){
+    Post.findById(postId)
+    .then(post =>{
+        let requiredCommentIndex = post.comments.findIndex(comm =>
+             comm._id.toString() === commentId.toString());
+        let requiredComment = post.comments[requiredCommentIndex];
+
+        let targetUserIndex = requiredComment.upvotes.users.findIndex(user =>
+            user.userId===userId);
+        let targetUser = requiredComment.upvotes.users[targetUserIndex];
+ 
+        if(targetUser){
+            let upvoted = false;
+            let downvoted = false;
+            if(targetUser.upvoted){
                 upvoted = false;
+                downvoted = false;
                 updateNeeded--;
-            } else if(tempComment.downvoted){
+            } else if(targetUser.downvoted) {
                 upvoted = true;
                 downvoted = false;
                 updateNeeded+=2;
-            } else {
+            }
+            else {
                 upvoted = true;
                 downvoted = false;
                 updateNeeded++;
             }
-            tempComment.upvoted = upvoted;
-            tempComment.downvoted = downvoted;
-
-            updatedCommentUpvoted.push(tempComment);
-                       
+            targetUser.upvoted = upvoted;
+            targetUser.downvoted = downvoted;
+            requiredComment.upvotes.users[targetUserIndex] = targetUser;
         } else {
-            let addedComment = {
-                commentId :  mongooose.Types.ObjectId(commentId),
+            let newUser = {
+                userId : userId,
                 upvoted: true,
-                downvoted: false
+                downvoted : false
             }
-            updatedCommentUpvoted.push(addedComment);
             updateNeeded++;
+            requiredComment.upvotes.users.push(newUser);
         }
-        user.commentUpvoted = updatedCommentUpvoted; 
-        return user.save()
-    })
-    .then(result =>{
-        return Post.findById(postId);
-    })
-    .then(post =>{
-        let tempComment = post.comments.find(c =>
-            c._id.toString()===commentId.toString()
-        );
-        let updatedComments = post.comments.filter(c => 
-            c._id.toString()!==commentId.toString()
-        );
-        tempComment.upvotes+=updateNeeded;
-        updatedComments.push(tempComment);
-        post.comments = updatedComments;
-
+        requiredComment.upvotes.count+= updateNeeded;
+        post.comments[requiredCommentIndex] = requiredComment;
+       
         return post.save();
     })
-    .then(result =>{
+    .then( result =>{
         res.json({message: "Upvoted!"});
     })
-    .catch(err => {
+    .catch(err =>{
         console.log(err);
-    });
+    })
 }
 
 exports.downVoteHandler = (req,res,next) => {
     const userId = req.body.userId;
     const commentId = req.body.commentId;
     const postId = req.body.postId;
-    console.log('in upvote handler',req.body.postId);
+    // console.log('in upvote handler',req.body.postId);
     let updateNeeded = 0;
-    User.findById(userId)
-    .then(user =>{
-        console.log('I am a user from upvotHandler', user);
-        let tempComment = user.commentUpvoted.find(c =>
-            c.commentId.toString()===commentId.toString()
-        );
-        let updatedCommentUpvoted = user.commentUpvoted.filter(c =>
-            c.commentId.toString()!==commentId.toString()
-        ); 
-        let upvoted = false;
-        let downvoted = false;
-        if(tempComment){
-            if(tempComment.upvoted){
+    Post.findById(postId)
+    .then(post =>{
+        let requiredCommentIndex = post.comments.findIndex(comm =>
+             comm._id.toString() === commentId.toString());
+        let requiredComment = post.comments[requiredCommentIndex];
+
+        let targetUserIndex = requiredComment.upvotes.users.findIndex(user =>
+            user.userId===userId);
+        let targetUser = requiredComment.upvotes.users[targetUserIndex];
+ 
+        if(targetUser){
+            let upvoted = false;
+            let downvoted = false;
+            if(targetUser.upvoted){
                 upvoted = false;
                 downvoted = true;
                 updateNeeded-=2;
-            } else if(tempComment.downvoted){
+            } else if(targetUser.downvoted) {
                 upvoted = false;
                 downvoted = false;
-                updateNeeded+=1;
-            } else {
+                updateNeeded++;
+            }
+            else {
                 upvoted = false;
                 downvoted = true;
                 updateNeeded--;
             }
-            tempComment.upvoted = upvoted;
-            tempComment.downvoted = downvoted;
-
-            updatedCommentUpvoted.push(tempComment);
-                       
+            targetUser.upvoted = upvoted;
+            targetUser.downvoted = downvoted;
+            requiredComment.upvotes.users[targetUserIndex] = targetUser;
         } else {
-            let addedComment = {
-                commentId :  mongooose.Types.ObjectId(commentId),
+            let newUser = {
+                userId : userId,
                 upvoted: false,
-                downvoted: true
+                downvoted : true
             }
-            updatedCommentUpvoted.push(addedComment);
             updateNeeded--;
+            requiredComment.upvotes.users.push(newUser);
         }
-        user.commentUpvoted = updatedCommentUpvoted; 
-        return user.save()
-    })
-    .then(result =>{
-        return Post.findById(postId);
-    })
-    .then(post =>{
-        let tempComment = post.comments.find(c =>
-            c._id.toString()===commentId.toString()
-        );
-        let updatedComments = post.comments.filter(c => 
-            c._id.toString()!==commentId.toString()
-        );
-        tempComment.upvotes+=updateNeeded;
-        updatedComments.push(tempComment);
-        post.comments = updatedComments;
-
+        requiredComment.upvotes.count+= updateNeeded;
+        post.comments[requiredCommentIndex] = requiredComment;
+       
         return post.save();
     })
-    .then(result =>{
-        res.json({message: "Downvoted!"});
+    .then( result =>{
+        res.json({message: "Upvoted!"});
     })
-    .catch(err => {
+    .catch(err =>{
         console.log(err);
-    });
+    })
 }
 
 // exports.downVoteHandler = (req,res,next) => {
@@ -500,17 +473,16 @@ exports.fetchDiscussionPost = (req,res,next) =>{
             let temp = {
                 commentId: comment._id,
                 content: comment.content,
-                upvotes: comment.upvotes,
+                upvotes: comment.upvotes.count,
                 userId: comment.user.userId,
                 name: comment.user.userName
             }
-            let comm = loggedInUser.commentUpvoted.find(c =>
-                c.commentId.toString()===comment._id.toString()
-            );
-            if(comm)
+            let user = comment.upvotes.users.find(u =>
+            u.userId===loggedInUser._id);
+            if(user)
             {
-                temp.upvoted=comm.upvoted;
-                temp.downvoted=comm.downvoted;
+                temp.upvoted=user.upvoted;
+                temp.downvoted=user.downvoted;
             }
             info.comments.push(temp);
         })

@@ -37,8 +37,12 @@ postSchema = Schema({
             userName: {type: String, required: true, ref: 'User'}
         },
         upvotes: {
-            type: Number,
-            default:0
+            count : {type: Number, default: 0},
+            users :[{
+                userId : {type: String, ref:'User', required:true},
+                upvoted : {type: Boolean, default: false},
+                downvoted : {type: Boolean, default: false}
+            }]
         }
     }]
 
