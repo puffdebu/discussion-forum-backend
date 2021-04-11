@@ -1,30 +1,13 @@
-// const Sequelize = require('sequelize');
-// const sequelize = require('../utils/database');
-
-
-// const Post = sequelize.define('post',{
-//     id : {
-//         type : Sequelize.INTEGER,
-//         allowNull : false,
-//         autoIncrement : true,
-//         primaryKey : true,
-//     },
-//     content : Sequelize.TEXT,
-// });
-
-// module.exports = Post;
-
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-postSchema = Schema({
+const postSchema = new Schema({
     content:{
         type: String,
         required: true,
     },
     user:{
-        userId: {type: String, required: true, ref: 'User'},
-        userName: {type: String, required: true, ref: 'User'}
+        userId : {type: String, required: true, ref: 'User'},
     },
     comments: [{
         content:{
@@ -47,5 +30,11 @@ postSchema = Schema({
     }]
 
 });
+
+postSchema.methods.delComment = function(commentId) {
+    const newComments = this.comments.filter(c => c._id.toString() !== commentId.toString());
+    this.comments = newComments;
+    return this.save();
+}
 
 module.exports = mongoose.model('Post', postSchema);
