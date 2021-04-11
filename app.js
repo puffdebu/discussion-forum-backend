@@ -36,7 +36,8 @@ app.use((err,req,res,next) => {
 
 mongoose.connect('mongodb+srv://nishee:nishee@cluster0.f3dfq.mongodb.net/forum?retryWrites=true&w=majority')
 .then(result =>{
-    app.listen(8080);
+    const port = process.env.PORT || 8080;
+    app.listen(port);
 })
 .catch(err =>{
     console.log(err);
