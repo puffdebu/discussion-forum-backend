@@ -3,7 +3,6 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const helmet = require('helmet');
-const fs = require('fs');
 
 // Models,routes,db connection Imports // 
 const postRoutes = require('./routes/posts');
@@ -13,8 +12,6 @@ const eventRoutes = require('./routes/event');
 // Creating App 
 const app = express();
 
-const key = fs.readFileSync('server.key');
-const certificate = fs.readFileSync('server.cert');
 
 // Middlewares
 app.use(bodyParser.urlencoded({extended : false}));
