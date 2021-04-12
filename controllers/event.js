@@ -42,7 +42,7 @@ exports.createEvent = (req,res,next) => {
 exports.fetch = (req,res,next) => {
     Event.deleteMany({startTime : {$lt : new Date()}})
         .then(resp => {
-            return Event.find();
+            return Event.find({}).sort({startTime : 'asc'}).exec();
         })
         .then(events => {
             const promiseArr = [];
